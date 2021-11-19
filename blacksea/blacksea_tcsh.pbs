@@ -1,0 +1,14 @@
+#!/usr/bin/tcsh
+
+#PBS -o run_qsub_long.out
+#PBS -e run_qsub_long.err
+#PBS -l nodes=1:ppn=16
+#PBS -q test
+
+#eval "$(conda shell.bash hook)"
+source ${HOME}/miniconda3/etc/profile.d/conda.sh
+conda activate pygetm
+cd $HOME/BLUE2/blacksea
+NPROCS=`wc -l < $PBS_NODEFILE`
+mpiexec -np $NPROCS python -u $HOME/BLUE2/blacksea/blacksea.py
+
