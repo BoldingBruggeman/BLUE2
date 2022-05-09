@@ -80,7 +80,7 @@
   k_lbc=           1,
   psi_ubc=         1,
   psi_lbc=         1,
-  ubc_type=        2,
+  ubc_type=        1,
   lbc_type=        1
  /
 

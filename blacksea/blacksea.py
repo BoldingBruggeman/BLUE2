@@ -13,10 +13,10 @@ if os.path.isfile('../shared/blue2.py'):
     sys.path.insert(0, '../shared');
     import blue2
 else:
-    print('edit medsea.py and set the folder where blue2.py is')
+    print('edit blacksea.py and set the folder where blue2.py is')
     quit()
 
-setup = 'medsea'
+setup = 'blacksea'
 
 parser = argparse.ArgumentParser()
 blue2.config(parser)
@@ -29,7 +29,7 @@ if args.input_dir is None: args.input_dir = os.path.join(args.setup_dir,'input')
 if args.output is None: args.output_dir = os.path.join(args.setup_dir,'.')
 tiling = args.tiling if args.tiling is not None else None
 if args.meteo_dir is None: args.no_meteo = True
-profile = 'medsea' if args.profile is not None else None
+profile = 'blacksea' if args.profile is not None else None
 
 # Setup domain and simulation
 domain = pygetm.legacy.domain_from_topo(os.path.join(args.setup_dir, 'topo.nc'), nlev=30, z0_const=0.001, tiling=args.tiling)
@@ -51,7 +51,7 @@ sim = pygetm.Simulation(domain,
 #                        airsea=airsea,
 #                        airsea=pygetm.airsea.Fluxes(),
                         airsea=pygetm.airsea.FluxesFromMeteo(humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE),
-#KB                        turbulence=pygetm.mixing.Turbulence(), 
+#KB                        turbulence=pygetm.mixing.Turbulence(),
                         gotm=os.path.join(args.setup_dir, 'gotmturb.nml'),
                        )
 
@@ -85,8 +85,8 @@ if domain.open_boundaries:
 # Initial salinity and temperature
 if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.logger.info('Setting up initial salinity and temperature conditions')
-    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'temp'), on_grid=True)
-    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'salt'), on_grid=True)
+    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'temp'), on_grid=True) #KB
+    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'salt'), on_grid=True) #KB
     sim.temp[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.salt[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.density.convert_ts(sim.salt, sim.temp)
@@ -138,7 +138,7 @@ if args.output:
         output.request(('u10', 'v10', 'sp', 't2m', 'd2m', 'tcc'))
         if args.debug_output:
             output.request(('rhoa', 'qa', 'qs', 'qe', 'qh', 'ql', 'swr', 'albedo', 'zen'))
-    output = sim.output_manager.add_netcdf_file(os.path.join(args.output_dir, 'medsea_2d.nc'), interval=datetime.timedelta(hours=1), sync_interval=None)
+    output = sim.output_manager.add_netcdf_file(os.path.join(args.output_dir, 'blacksea_2d.nc'), interval=datetime.timedelta(hours=1), sync_interval=None)
     output.request(('Ht', ), mask=True)
     output.request(('zt', 'Dt', 'u1', 'v1', 'tausxu', 'tausyv', ))
     if args.debug_output:
@@ -147,7 +147,7 @@ if args.output:
         output.request(('Du', 'Dv', 'dpdx', 'dpdy', 'z0bu', 'z0bv', 'z0bt'))   #, 'u_taus'
         output.request(('ru', 'rru', 'rv', 'rrv', ))
     if sim.runtype > pygetm.BAROTROPIC_2D:
-        output = sim.output_manager.add_netcdf_file(os.path.join(args.output_dir, 'medsea_3d.nc'), interval=datetime.timedelta(hours=6), sync_interval=None)
+        output = sim.output_manager.add_netcdf_file(os.path.join(args.output_dir, 'blacksea_3d.nc'), interval=datetime.timedelta(hours=6), sync_interval=None)
         output.request(('Ht', ), mask=True)
         output.request(('zt', 'uk', 'vk', 'ww', 'SS', 'num',))
         if args.debug_output:
