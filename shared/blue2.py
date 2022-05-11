@@ -10,7 +10,7 @@ def config(parser):
     parser.add_argument('--input_dir', type=pathlib.Path, help='Path to input files', default='input' )
     parser.add_argument('--output_dir', type=pathlib.Path, help='Path to save output files', default='.')
     parser.add_argument('--tpxo9_dir', type=pathlib.Path, help='Path to TPXO9 configuration files')
-    parser.add_argument('--tiling', type=argparse.FileType('r'), help='Path to tiling pickle file')
+    parser.add_argument('--tiling', help='Path to tiling pickle file')
     parser.add_argument('--initial', action='store_true', help='Read initial salinity and temerature conditions from file')
     parser.add_argument('--no_meteo', action='store_true', help='No meteo forcing')
     parser.add_argument('--no_boundaries', action='store_false', dest='boundaries', help='No open boundaries')
