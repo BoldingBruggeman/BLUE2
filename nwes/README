@@ -1,0 +1,6 @@
+# Example run command line
+python nwes.py "1990-01-01 00:00:00" "1990-01-01 01:00:00" /data/kb/BLUE2/ERA5/ --no_rivers --initial
+
+# Status
+# KB - 2022-05-11 11:30:26 - salinity blow up after 2 hours
+

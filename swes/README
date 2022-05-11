@@ -1,0 +1,3 @@
+# Example run command line
+python swes.py "2005-01-01 00:00:00" "2005-01-02 01:00:00" /data/kb/BLUE2/ERA5/ --no_rivers --initial
+
