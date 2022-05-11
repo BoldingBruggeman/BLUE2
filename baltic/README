@@ -3,3 +3,4 @@ python baltic.py "2006-01-01 00:00:00" "2006-01-02 00:00:00" /data/kb/BLUE2/ERA5
 
 # Status
 # KB: 2022-05-11 11:28:29 - produces NaNs
+# KB: 2022-05-11 13:35:49 - updated topo.nc - runs for 24 hours
