@@ -61,9 +61,9 @@ sim = pygetm.Simulation(domain,
 if domain.open_boundaries:
     if args.tpxo9_dir is None:
         sim.logger.info('Reading 2D boundary data from file')
-#KB           domain.open_boundaries.z.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'elev'))
-#KB           domain.open_boundaries.u.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'Forcing/2D/bdy.2d.2006.nc'), 'u'))
-#KB           domain.open_boundaries.v.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'Forcing/2D/bdy.2d.2006.nc'), 'v'))
+        domain.open_boundaries.z.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy.2d.NWES.TPXO9OSU.1990.nc'), 'elev'))
+        domain.open_boundaries.u.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy.2d.NWES.TPXO9OSU.1990.nc'), 'u'))
+        domain.open_boundaries.v.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy.2d.NWES.TPXO9OSU.1990.nc'), 'v'))
     else:
         sim.logger.info('Setting up TPXO tidal boundary forcing')
         TPXO9_data_dirs = ( '/server/data', '../../../igotm/data', '/ACQUA/COMMONDATA' )
@@ -85,8 +85,8 @@ if domain.open_boundaries:
 # Initial salinity and temperature
 if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.logger.info('Setting up initial salinity and temperature conditions')
-    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'temp'), on_grid=True) #KB
-    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'salt'), on_grid=True) #KB
+    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.physics.WOA.nc'), 'temp'), on_grid=True)
+    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.physics.WOA.nc'), 'salt'), on_grid=True)
     sim.temp[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.salt[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.density.convert_ts(sim.salt, sim.temp)

@@ -25,7 +25,7 @@ args = parser.parse_args()
 simstart = datetime.datetime.strptime(args.start, '%Y-%m-%d %H:%M:%S')
 simstop = datetime.datetime.strptime(args.stop, '%Y-%m-%d %H:%M:%S')
 if args.setup_dir is None: args.setup_dir = '.'
-if args.input_dir is None: args.input_dir = os.path.join(args.setup_dir,'input')
+if args.input_dir is None: args.input_dir = os.path.join(args.setup_dir,'Input')
 if args.output is None: args.output_dir = os.path.join(args.setup_dir,'.')
 tiling = args.tiling if args.tiling is not None else None
 if args.meteo_dir is None: args.no_meteo = True
@@ -51,7 +51,7 @@ sim = pygetm.Simulation(domain,
 #                        airsea=airsea,
 #                        airsea=pygetm.airsea.Fluxes(),
                         airsea=pygetm.airsea.FluxesFromMeteo(humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE),
-#KB                        turbulence=pygetm.mixing.Turbulence(), 
+#KB                        turbulence=pygetm.mixing.Turbulence(),
                         gotm=os.path.join(args.setup_dir, 'gotmturb.nml'),
                        )
 
@@ -85,8 +85,8 @@ if domain.open_boundaries:
 # Initial salinity and temperature
 if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.logger.info('Setting up initial salinity and temperature conditions')
-    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'temp'), on_grid=True) #KB
-    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'salt'), on_grid=True) #KB
+    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_3d.nc'), 'temp').isel(time=0), on_grid=True)
+    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_3d.nc'), 'salt').isel(time=0), on_grid=True)
     sim.temp[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.salt[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.density.convert_ts(sim.salt, sim.temp)

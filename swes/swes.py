@@ -25,7 +25,7 @@ args = parser.parse_args()
 simstart = datetime.datetime.strptime(args.start, '%Y-%m-%d %H:%M:%S')
 simstop = datetime.datetime.strptime(args.stop, '%Y-%m-%d %H:%M:%S')
 if args.setup_dir is None: args.setup_dir = '.'
-if args.input_dir is None: args.input_dir = os.path.join(args.setup_dir,'input')
+if args.input_dir is None: args.input_dir = os.path.join(args.setup_dir,'Input')
 if args.output is None: args.output_dir = os.path.join(args.setup_dir,'.')
 tiling = args.tiling if args.tiling is not None else None
 if args.meteo_dir is None: args.no_meteo = True
@@ -85,8 +85,13 @@ if domain.open_boundaries:
 # Initial salinity and temperature
 if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.logger.info('Setting up initial salinity and temperature conditions')
+<<<<<<< HEAD
     sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.nc'), 'temp'), on_grid=True) #KB
     sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.nc'), 'salt'), on_grid=True) #KB
+=======
+    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.physics.deepinterp.nc'), 'temp'), on_grid=True)
+    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.physics.deepinterp.nc'), 'salt'), on_grid=True)
+>>>>>>> a73573cb28e54a9189ff9edbfcf2a150129fcf38
     sim.temp[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.salt[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.density.convert_ts(sim.salt, sim.temp)
@@ -96,9 +101,9 @@ else:
 
 if domain.rivers:
     for name, river in domain.rivers.items():
-        river.flow.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'rivers.nc'), name))
+        river.flow.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'mergerivers1.nc'), name))
         if sim.runtype == pygetm.BAROCLINIC:
-            river['salt'].set(pygetm.input.from_nc(os.path.join(args.input_dir, 'rivers.nc'), '%s_salt' % name))
+            river['salt'].set(pygetm.input.from_nc(os.path.join(args.input_dir, 'mergerivers1.nc'), '%s_salt' % name))
 
 # Meteorological forcing - select between ERA-interim or ERA5
 if not args.no_meteo:
@@ -159,7 +164,7 @@ if args.output:
         if sim.fabm_model:
             output.request(('par', 'med_ergom_o2', 'med_ergom_OFL', 'med_ergom_dd'))
 
-sim.start(simstart, timestep=15., split_factor=20, report=180, profile=profile)
+sim.start(simstart, timestep=15., split_factor=20, report=240, profile=profile)
 while sim.time < simstop:
     sim.advance()
 sim.finish()
