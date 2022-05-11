@@ -7,7 +7,7 @@ def config(parser):
     parser.add_argument('stop', help='Similation stop time - yyyy-mm-dd hh:mi:ss')
     parser.add_argument('meteo_dir', type=pathlib.Path, help='Path to meteo forcing files')
     parser.add_argument('--setup_dir', type=pathlib.Path, help='Path to configuration files', default='.')
-    parser.add_argument('--input_dir', type=pathlib.Path, help='Path to input files', default='input' )
+    parser.add_argument('--input_dir', type=pathlib.Path, help='Path to input files', default='Input' )
     parser.add_argument('--output_dir', type=pathlib.Path, help='Path to save output files', default='.')
     parser.add_argument('--tpxo9_dir', type=pathlib.Path, help='Path to TPXO9 configuration files')
     parser.add_argument('--tiling', help='Path to tiling pickle file')
