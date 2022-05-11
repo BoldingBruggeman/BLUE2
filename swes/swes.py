@@ -85,8 +85,8 @@ if domain.open_boundaries:
 # Initial salinity and temperature
 if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.logger.info('Setting up initial salinity and temperature conditions')
-    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'temp'), on_grid=True) #KB
-    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'medsea_5x5-clim-dec.nc'), 'salt'), on_grid=True) #KB
+    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.nc'), 'temp'), on_grid=True) #KB
+    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.nc'), 'salt'), on_grid=True) #KB
     sim.temp[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.salt[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.density.convert_ts(sim.salt, sim.temp)

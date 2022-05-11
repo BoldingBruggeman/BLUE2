@@ -2,12 +2,12 @@
 
 #PBS -o run_qsub_long.out
 #PBS -e run_qsub_long.err
-#PBS -l nodes=1:ppn=16
-#PBS -q test
+#PBS -l nodes=3:ppn=32
+#PBS -q medium
 
 eval "$(conda shell.bash hook)"
 conda activate pygetm
 cd $HOME/BLUE2/swes
 NPROCS=`wc -l < $PBS_NODEFILE`
-mpiexec -np $NPROCS python -u $HOME/BLUE2/swes/swes.py
+mpiexec -np $NPROCS --output-filename mpilog python -u $HOME/BLUE2/swes/swes.py '2005-01-01 00:00:00' '2005-01-03 00:00:00' '/ACQUA/COMMONDATA/GETM2/ERA5-europe/' --input_dir /ACQUA/COMMONDATA/GETM2/swes/Input --initial --tiling subdiv_96.pickle
 
