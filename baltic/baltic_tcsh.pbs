@@ -6,7 +6,7 @@
 #PBS -q medium
 
 #eval "$(conda shell.bash hook)"
-source ${HOME}/miniconda3/etc/profile.d/conda.sh
+source ${HOME}/miniconda3/etc/profile.d/conda.csh
 conda activate pygetm
 cd $HOME/BLUE2/baltic
 NPROCS=`wc -l < $PBS_NODEFILE`
