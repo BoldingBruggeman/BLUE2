@@ -1,14 +1,15 @@
-#!/usr/bin/bash
+#!/usr/bin/tcsh
 
 #PBS -o run_qsub_long.out
 #PBS -e run_qsub_long.err
 #PBS -l nodes=1:ppn=32
-#PBS -q test
+#PBS -q medium
 
-eval "$(conda shell.bash hook)"
+#eval "$(conda shell.bash hook)"
+source ${HOME}/miniconda3/etc/profile.d/conda.csh
 conda activate pygetm
 cd $HOME/BLUE2/baltic
-NPROCS=`wc -l < $PBS_NODEFILE`
+set NPROCS=`wc -l < $PBS_NODEFILE`
 # --output-filename mpilog
 mpiexec -np $NPROCS python -u $HOME/BLUE2/baltic/baltic.py '2006-01-01 00:00:00' '2006-01-03 00:00:00' '/ACQUA/COMMONDATA/BLUE2-data/ERA5-europe/' --input_dir /ACQUA/COMMONDATA/BLUE2-data/baltic/Input --initial
 
