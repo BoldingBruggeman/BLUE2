@@ -2,3 +2,4 @@
 *.nc
 *.pyc
 __pycache__/
+*.pickle
