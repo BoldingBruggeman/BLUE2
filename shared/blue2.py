@@ -12,6 +12,8 @@ def config(parser):
     parser.add_argument('--tpxo9_dir', type=pathlib.Path, help='Path to TPXO9 configuration files')
     parser.add_argument('--tiling', help='Path to tiling pickle file')
     parser.add_argument('--initial', action='store_true', help='Read initial salinity and temerature conditions from file')
+    parser.add_argument('--save_restart', help='File to save restart to')
+    parser.add_argument('--load_restart', help='File to load restart from')
     parser.add_argument('--no_meteo', action='store_true', help='No meteo forcing')
     parser.add_argument('--no_boundaries', action='store_false', dest='boundaries', help='No open boundaries')
     parser.add_argument('--no_rivers', action='store_false', dest='rivers', help='No river input')

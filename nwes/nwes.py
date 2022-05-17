@@ -32,11 +32,13 @@ if args.meteo_dir is None: args.no_meteo = True
 profile = 'nwes' if args.profile is not None else None
 
 # Setup domain and simulation
-domain = pygetm.legacy.domain_from_topo(os.path.join(args.setup_dir, 'topo.nc'), nlev=30, z0_const=0.001, tiling=args.tiling)
+#domain = pygetm.legacy.domain_from_topo(os.path.join(args.setup_dir, 'topo.nc'), Dmin=0.7, Dcrit=2.1, nlev=30, z0_const=0.001, tiling=args.tiling)
+domain = pygetm.legacy.domain_from_topo(os.path.join(args.setup_dir, 'topo.nc'), Dmin=1.0, Dcrit=2.0, nlev=30, z0_const=0.001, tiling=args.tiling)
+domain.limit_velocity_depth()
 
-if args.initial:
-    domain.Dmin = 5.
-    domain.Dcrit = 10.
+#if args.initial:
+#    domain.Dmin = 5.
+#    domain.Dcrit = 10.
 
 if args.boundaries:
     pygetm.legacy.load_bdyinfo(domain, os.path.join(args.setup_dir, 'bdyinfo.dat'), type_2d=-4)
@@ -159,6 +161,12 @@ if args.output:
             output.request(('idpdx', 'idpdy',))
         if sim.fabm_model:
             output.request(('par', 'med_ergom_o2', 'med_ergom_OFL', 'med_ergom_dd'))
+
+if args.save_restart:
+    sim.output_manager.add_restart(args.save_restart)
+
+if args.load_restart:
+    simstart = sim.load_restart(args.load_restart)
 
 sim.start(simstart, timestep=10., split_factor=20, report=180, profile=profile)
 while sim.time < simstop:
