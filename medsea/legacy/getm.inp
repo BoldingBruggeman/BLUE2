@@ -1,0 +1,493 @@
+!$Id: getm.proto,v 1.7 2001/10/22 11:09:38 bbh Exp $
+!-------------------------------------------------------------------------------
+! The namelists 'param','time','domain', 'io_spec', 'meteo', 'm2d', 'm3d'
+! 'temp', 'salt'
+! They have to come in this order.
+!-------------------------------------------------------------------------------
+
+!-------------------------------------------------------------------------------
+! General model setup is here - initialise.F90
+!
+! dryrun=	Used to test setup - .true. or .false.
+! runid=	Used for naming output files
+! title=	Title of Simulation
+! parallel=	parallel simulation - .true. or .false.
+! runtype=	1=2D, 2=3D (no density), 3=3D (frosen density), 4=3D (full)
+! hotstart=	read initial fields from file - .true. or .false.
+!-------------------------------------------------------------------------------
+ &param
+  dryrun=	.false.,
+  runid=	'm5_REF_BLUE22_2022_02',
+  title=	'Mediterranean Sea - 5x5_bis - ',
+  parallel=	.true.,
+  runtype=	4,
+  hotstart=	.true.,
+  use_epoch =   .false.,
+  save_initial=	.true.,
+ /
+
+!-------------------------------------------------------------------------------
+!Specify time related formats and variables here - time.F90
+!
+! timestep=	Micro timestep (as a real numer in seconds)
+! timefmt=	1,2,3 - implicitly uses timestep=dt
+!		1- maxn only - fake start time used.
+!		2- start and stop - MaxN calculated.
+!		3- start and MaxN - stop calculated.
+! nlast=	do loop from n=1,nlast
+! start=	Initial time: YYYY/MM/DD HH:MM:SS
+! stop=		Final   time: YYYY/MM/DD HH:MM:SS
+!-------------------------------------------------------------------------------
+ &time
+  timestep=     18,
+  timefmt=      2,
+  nlast=        -1,
+  start=        '2022-02-01 00:00:00',
+  stop=         '2022-03-01 00:00:00',
+ /
+
+!-------------------------------------------------------------------------------
+!Information on the calculation domain - domain/domain.F90
+!
+! vert_cord=      1:sigma, 2:z-level, 3:general
+! maxdepth=       maximum depth in active calculation domain
+! bathymetry=     name of file with bathymetry and grid
+! f_plane=        if .true.  : constant f computed from 'latitude' in 'getm.inp'
+!                 if .false. : varying  f computed from (lat,lon) in bathymetry
+! latitude=       used for calculating the Coriolis force
+! openbdy=        set to .true. if any open boundaries
+! bdyinfofile=    read if 'openbdy' is .true. - contains boundary info
+! crit_depth=     the critical depth - when the drying procedure starts
+! min_depth=      the absolute minimum depth
+! kdum=           number of layers in the vertical - only used when -DDYNAMIC
+! ddu,ddl=        upper and lower zooming parameters (in coodinates.F90)
+! d_gamma=        used to define general vert. cordinates (in coodinates.F90)
+! gamma_surf=     used to define general vert. cordinates (in coodinates.F90)
+!-------------------------------------------------------------------------------
+ &domain
+  vert_cord=	3,
+  bathymetry=	'topo.nc',
+  maxdepth =    4000.,
+  f_plane  =    .false.,
+  longitude=    20.,
+  latitude=	40.0,
+  openbdy=	.true.,
+  bdyinfofile=	'bdyinfo.dat',
+  crit_depth=	0.5,
+  min_depth=	0.2,
+  kdum=		25,
+  ddu=		4., !2.,
+  ddl=		1.,
+  d_gamma=	20.,
+  gamma_surf=	.true.,
+  il=		-1,
+  ih=		-1,
+  jl=		-1,
+  jh=		-1,
+  z0_method=     0,
+  z0_const=      0.001,
+
+ /
+
+!-------------------------------------------------------------------------------
+! Specify variables related to meteo forcing - meteo/meteo.F90
+!
+! metforcing=	.true. or .false.
+! on_grid=	.true. or .false.
+! calc_met=	.true. or .false.
+! method=	1 = constant, 2 = from file
+! albedo_method= 
+! spinup=	spin forcing up over 'spinup' micro time steps
+! metfmt=	format of meteofile: 1-ASCII, 2-NetCDF
+! meteo_file=	'meteo.nc',
+! tx=		constant x stress
+! ty=		constant y stress
+! albedo_method= 
+!            case (0) 'albedo = ',albedo_const
+!            case (1) 'Albedo according to Payne'
+!            case (2) 'Albedo according to Cogley'
+!            case (3) 'Albedo according to Fresnel'
+!            case (4) 'Albedo according to Sivkov'
+!            case (5) 'Albedo according to Cogley corrected by Payne'
+! swr_const=	constant short wave radiation
+! shf_const=	constant surface heat flux
+!-------------------------------------------------------------------------------
+ &meteo
+  metforcing=	.true.,
+  on_grid=	.false.,
+  calc_met=	.true.,
+  met_method=   2,
+  fwf_method=   3,
+  meteo_ramp =  0,
+  metfmt=	2,
+  meteo_file=	'meteo_files.dat',
+  tx=		0.,
+  ty=		0.,
+  albedo_method=1,
+  albedo_const= 0,
+  swr_const=	0.,
+  shf_const=	0.,
+  evap_const=   0.,
+  precip_const= 0.,
+  evap_factor=  1.,
+  precip_factor=9.259259e-05 !<==3h   !6h:4.629629e-05, !1.157407e-05,
+/
+! southpole (lon,lat) - default 0,90
+! name_u10
+! name_v10
+! name_airp
+! name_t2
+! name_hum
+! name_cc
+! name_tausx
+! name_tausy
+! name_swr
+! name_shf
+! name_time
+! time_fmt
+! scan_axis - integer
+! 
+
+!-------------------------------------------------------------------------------
+! Specify variables related to salinity - 3d/rivers.F90
+!
+! river_method=	0:none,1:const,2:from file
+! river_info=	name of file with river specifications
+! river_format=	1=ASCII,2=NetCDF
+! river_data=	name of file with actual river data 
+! river_factor=	to be apllied to all read values - e.g. m3/day --> m3/s
+!-------------------------------------------------------------------------------
+ &rivers
+  river_method= 2,
+  river_info=	'riverinfo.dat',
+  river_format=	2,
+  river_data=	'rivers.nc',
+  river_factor=	1.,
+  river_ramp=   -1,
+  use_river_salt = .true.,
+  use_river_temp = .true.,
+  river_outflow_properties_follow_source_cell = .true.,
+ /
+
+!-------------------------------------------------------------------------------
+! Specify variables related to 2D model - 2d/m2d.F90
+! elev_method     [integer]
+!                   method for initial surface elevation
+!                   1: constant
+!                   2: from 2D field
+! elev_const      [float]
+!                   constant initial surface elevation
+!                   This variable is only used if elev_method = 1
+! elev_file       [string]
+!                   name of file with initial surface elevation
+!                   This variable is only used if elev_method = 2
+!
+! MM=               number of micro timesteps between call to bottom_friction()
+! z0_const=         constant bottom roughness (m)
+! vel2d_adv_split [integer]
+!                   advection splitting for depth-averaged velocities
+!                   0: no split: one 2D uv step
+!                   1: full step splitting: u + v
+!                   2: half step splitting: u/2 + v + u/2
+!                   This variable is not used if vel2d_adv_hor = 0
+! vel2d_adv_hor   [integer]
+!                   advection scheme for depth-averaged velocities
+!                   0: advection disabled
+!                   1: upstream (first-order, monotone)
+!                   2: 2DH-upstream with forced monotonicity
+!                   3: P2 (third-order, non-monotone)
+!                   4: TVD-Superbee (second-order, monotone)
+!                   5: TVD-MUSCL (second-order, monotone)
+!                   6: TVD-P2-PDM (third-order, monotone)
+!                   7: 2DH-J7
+!                   8: 2DH-FCT
+!                   9: 2DH-P2
+! vel_depth_method= 0: using mean value of neigboring H points (default)
+!                   1: using minimum value of neigboring H points
+!                   2: a mixture of 0,1: see code for details
+! Am              [float, unit = m^2/s]
+!                   constant horizontal momentum diffusion coefficient
+! An_method       [integer]
+!                   method for constant horizontal numerical diffusion
+!                     coefficient (m^2/s) used to filter the surface elevation
+!                   0: disabled
+!                   1: constant value An_const
+!                   2: variable 2D from file
+! An_const        [float, unit = m^2/s]
+!                   constant horizontal numerical diffusion coefficient
+!                   This variable is only used if An_method = 1
+! An_file         [string]
+!                   name of netcdf file with variable An
+!                   This variable is only used if An_method = 2
+! residual        [integer]
+!                   compute vertically integrated residual currents every
+!                     'residual' time step
+! sealevel_check  [integer]
+!                   Interval between checks for NaN's in sealevels. 0: disabled,
+!                     >0: check every sealevel_check step, abort if check fails,
+!                     <0: check every abs(sealevel_check) step, warn only if
+!                     check fails
+! bdy2d           [bool]
+!                   open boundaries exist
+! bdyfmt_2d       [integer]
+!                   format of boundary specifications
+!                   -1: no data needed
+!                   0: analytical
+!                   1: ASCII
+!                   2: NetCDF
+!                   This variable is only used if bdy2d = True
+! bdy2d_ramp      [integer]
+!                   number of time steps for elevation boundary spin-up
+!                   This variable is only used if bdy2d = True
+! bdyfile_2d      [string]
+!                   name of file with boundary data
+!                   This variable is only used if (bdy2d = True and (bdyfmt_2d =
+!                     1 or bdyfmt_2d = 2))
+!-------------------------------------------------------------------------------
+
+
+ &m2d
+  elev_method = 1,
+  elev_const = 0.0,
+  elev_file = 'elev.nc',
+  MM=		1,
+  vel2d_adv_split = 1,
+  vel2d_adv_hor = 6,
+  Am=		-1.,
+  An_method=    2,
+  An_const=     50,
+  An_file = 'An_file.nc',
+  residual= -1,
+  sealevel_check= 0,
+  bdy2d=	.false.,
+  bdyfmt_2d=	2,
+  !bdyramp_2d=	-1,
+  bdyfile_2d=	'bdy_2d.nc',
+/
+
+! Advection methods implemented sofar: 1=UPSTREAM,2=UPSTREAM_SPLIT,3=TVD
+
+!-------------------------------------------------------------------------------
+! Specify variables related to 3D model - 3d/m3d.F90
+!
+! M=               split factor - number of micro timesteps between call to 3D model
+! cnpar=           Cranck-Nicolson factor - between 0. and 1. (close to 1.)
+! cord_relax=      coordinate relaxation time scale (HB to explain)
+! bdy3d=           open boundaries exist - .true. or .false.
+! bdyfmt_3d=       format of boundary specification 
+!                  1 (ascii), 2 (NetCDF)
+! bdyramp_3d=      spin bdy up over ramp time steps
+! bdyfile_3d=      name of file with boundary data
+!
+! vel_hor_adv=     horizontal advection method for momentum (see below)
+! vel_ver_adv=     vertical advection method for momentum   (see below)
+! vel_adv_split=   spitting scheme for advection
+!
+!                  if vel_hor_adv=1: 3D first-order upstream
+!                  for all other setting -DUV_TVD has to be set in Makefile
+!                  
+!                  vel_adv_split can have the following values:
+!                   0: 1D split --> full u, full v, full w
+!                   1: 1D split --> half u, half v, full w, half v, half u
+!                        hor_adv and ver_adv may be 2,3,4,5,6
+!                        2: upstream (first-order, monotone)
+!                        3: P2-PDM   (third-order, non-monotone)
+!                        4: TVD-Superbee (second-order, monotone)
+!                        5: TVD-MUSCL    (second-order, monotone)
+!                        6: TVD-P2-PDM   (third-order, monotone)
+!                   2: 2D-hor-1D-vert split --> full uv, full w
+!                        hor_adv must be 2 (2D-upstream) or 7 (2D-FCT)
+!
+! calc_temp=       solve temperature equation             - .true. or .false.
+! calc_salt=       solve salinity equation                - .true. or .false.
+! avmback=         background viscosity
+! avhback=         background diffusivity
+! ip_method=       internal pressure method
+!                    1: Blumberg and Mellor
+!                    2: Blumberg and Mellor (linear) 
+!                    3: z-interpolation
+!                    4: Song and Wright
+!                    5: Chu and Fan
+!-------------------------------------------------------------------------------
+ &m3d
+  M=		30, !20,
+  cnpar=	0.9,
+  cord_relax=	0.,
+  adv_ver_iterations = 800,
+  bdy3d=	.true.,
+  bdyfmt_3d=	2,
+  !bdyramp_3d=	0,
+  bdyfile_3d=	'bdy_3d.nc',
+  bdy3d_tmrlx = .false.,
+  bdy3d_tmrlx_min = 0.0,
+  bdy3d_tmrlx_max = 0.25,
+  bdy3d_tmrlx_ucut = 0.02,
+  vel3d_adv_split = 1,
+  vel3d_adv_hor = 4,
+  vel3d_adv_ver = 4,
+  calc_temp=	.true.,
+  calc_salt=	.true.,
+  avmback =     1.e-15, !1.e-6,
+  avhback =     1.e-15, !1.e-7,
+  ip_method =   6,
+  ip_ramp=      -1,
+  vel_check=    0,
+  min_vel=      -4.,
+  max_vel=      4.,
+
+ /
+
+!-------------------------------------------------------------------------------
+! Specify variables related to temperature - 3d/temperature.F90
+!
+! temp_method=      1:const, 2:homogeneous stratification, 3:from 3D field
+! temp_const=       constant initial temperature
+! temp_file=        name of file with initial temperature distribution
+! temp_format=      1=ASCII,2=NetCDF
+! temp_name=        name of the temperature variable      (used if NetCDF format)
+! temp_field_no=    what number to read initial data from (used if NetCDF format)
+! temp_hor_adv=     horizontal advection method for temperature
+! temp_ver_adv=     vertical advection method for temperature
+! temp_adv_split=   spitting scheme for advection
+!                   all advection schemes correspond to those of momentum
+!                   (see above)
+! temp_AH=          horizontal diffusivity of heat
+!-------------------------------------------------------------------------------
+ &temp
+  temp_method=	0,
+  temp_const=	20.0,
+  temp_format=	2,
+  temp_file=	'bdy_3d.nc',
+  temp_name=    'temp',
+  temp_field_no=1,
+  temp_adv_split = 1,
+  temp_adv_hor = 4,
+  temp_adv_ver = 4,
+  temp_AH=	-1.,
+  attenuation_method=   0, !=0 constant, =1 is from file
+  jerlov=               1,
+  A_const=              0.67,
+  g1_const=             0.67,
+  g2_const=             17.0,
+  attenuation_file = 'attenuation.nc',
+  swr_bot_refl_frac = 0.0,
+  swr_min_bot_frac = 0.01,
+  temp_check=           0,
+  min_temp=             5.,
+  max_temp=             35.,
+
+ /
+
+!-------------------------------------------------------------------------------
+! Specify variables related to salinity - 3d/salinity.F90
+!
+! salt_method= 1:const, 2:homogeneous stratification, 3:from 3D field
+! salt_const=	constant initial salinity
+! salt_file=	name of file with initial salinity distribution
+! salt_format=	1=ASCII,2=NetCDF
+! salt_name=	name of the salinity variable (used if NetCDF format)
+! salt_hor_adv=	horizontal advection method for salinity
+! salt_ver_adv=	vertical advection method for salinity
+! salt_strang=	Strang parameter - advection.	
+! salt_AH=	horizontal diffusion for salinity.
+!-------------------------------------------------------------------------------
+ &salt
+  salt_method=	0,
+  salt_const=	38.0,
+  salt_format=	2,
+  salt_file=	'bdy_3d.nc',
+  salt_name=	'salt',
+  salt_field_no        =1,
+  salt_adv_split = 1,
+  salt_adv_hor = 4,
+  salt_adv_ver = 4,
+  salt_AH=	-1.,
+  salt_check=           0,
+  min_salt=             0.,
+  max_salt=             60.,
+
+ /
+
+!------------------------------------------------------
+! Specify variables related to the equation of state.
+!
+! method =
+!          1: Linearisation of equation of state with T0,S0,dtr0,dsr0
+!          2: UNESCO equation of state no pressure adjustment. 
+!             See -DUNPRESS for pressure effect
+! T0=      Reference temperature (deg C) for linear equation of state
+! S0=      Reference salinity (psu) for linear equation of state
+! p0=      Reference pressure (bar) for linear equation of state
+! dtr0=    thermal expansion coefficient for linear equation of state
+! dsr0=    saline expansion coefficient for linear equation of state
+!-------------------------------------------------------------------------------
+ &eqstate
+  eqstate_method = 3,  !2,
+  T0             =10.0,
+  S0             =33.75,
+  p0             =0.,
+  dtr0           =-0.17,
+  dsr0           =0.78,
+ /
+
+!-------------------------------------------------------------------------------
+!Format for output and filename(s) - output/output.F90.
+!
+! out_fmt=      1=ASCII, 2=NetCDF, 3=GrADS
+! in_dir=       path to input directory
+! out_dir=      path to output directory
+! save_meteo=   .true. or .false.
+! save_2d=      .true. or .false.
+! save_3d=      .true. or .false.
+! save_vel=     .true. or .false.
+! save_strho=   .true. or .false.
+! save_s=       .true. or .false.
+! save_t=       .true. or .false.
+! save_rho=     .true. or .false.
+! save_turb=    .true. or .false.
+! save_tke=     .true. or .false.
+! save_eps=     .true. or .false.
+! save_num=     .true. or .false.
+! save_nuh=     .true. or .false.
+! first_2d=     the first (micro) time step to save 2D fields
+! step_2d=      save 2D fields every 'step_2d'
+! first_3d=     the first (micro) time step to save 3D fields
+! step_3d=      save 3D fields every 'step_3d'
+! hotout=       save hot file every 'hotout' timestep - < 0 - no saving
+!-------------------------------------------------------------------------------
+ &io_spec
+  out_fmt=      2,
+  hotin_fmt=    2,
+  hotout_fmt=   2,
+  in_dir=       './',
+  out_dir=      '/BGFS/ACQUA/garciel/m5_REF_BLUE22/z_local0/',
+  save_metrics = .false.,
+  save_masks = .false.,
+  save_2d = .false.,
+  save_meteo = .false.,
+  save_3d=      .true.,
+  save_vel=     .true.,
+  destag=       .true.,
+  save_strho=   .true.,
+  save_s=       .true.,
+  save_t=       .true.,
+  save_rho=     .false.,
+  save_rad=     .false.,
+!!!  save_botstress=.false.,
+  save_turb=    .false.,
+  save_tke=     .false.,
+  save_eps=     .false.,
+  save_num=     .false.,
+  save_nuh=     .false.,
+  save_ss_nn = .false.,
+  save_taub = .false.,
+  save_numerical_analyses = .false.,
+  first_2d=     0,
+  step_2d=      4800, !this is one day with timestep=18
+  sync_2d = 1,
+  first_3d=     0,
+  step_3d=      9600, !3200000, !640000,
+  sync_3d = 1,
+  hotout(:) = 0,,,
+  meanout=      0,
+/

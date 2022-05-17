@@ -51,7 +51,7 @@ sim = pygetm.Simulation(domain,
 #                        airsea=airsea,
 #                        airsea=pygetm.airsea.Fluxes(),
                         airsea=pygetm.airsea.FluxesFromMeteo(humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE),
-#KB                        turbulence=pygetm.mixing.Turbulence(), 
+#KB                        turbulence=pygetm.mixing.Turbulence(),
                         gotm=os.path.join(args.setup_dir, 'gotmturb.nml'),
                        )
 
@@ -158,6 +158,12 @@ if args.output:
             output.request(('idpdx', 'idpdy',))
         if sim.fabm_model:
             output.request(('par', 'med_ergom_o2', 'med_ergom_OFL', 'med_ergom_dd'))
+
+if args.save_restart:
+    sim.output_manager.add_restart(args.save_restart)
+
+if args.load_restart:
+    simstart = sim.load_restart(args.load_restart)
 
 sim.start(simstart, timestep=10., split_factor=20, report=180, profile=profile)
 while sim.time < simstop:

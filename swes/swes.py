@@ -164,6 +164,12 @@ if args.output:
         if sim.fabm_model:
             output.request(('par', 'med_ergom_o2', 'med_ergom_OFL', 'med_ergom_dd'))
 
+if args.save_restart:
+    sim.output_manager.add_restart(args.save_restart)
+
+if args.load_restart:
+    simstart = sim.load_restart(args.load_restart)
+
 sim.start(simstart, timestep=15., split_factor=20, report=240, profile=profile)
 while sim.time < simstop:
     sim.advance()
