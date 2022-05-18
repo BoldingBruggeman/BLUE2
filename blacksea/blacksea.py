@@ -59,7 +59,8 @@ else:
 # Setup simulation
 sim = pygetm.Simulation(domain,
                         runtype=pygetm.BAROCLINIC,
-                        advection_scheme=pygetm.AdvectionScheme.UPSTREAM,  # HSIMT
+                        advection_scheme=pygetm.AdvectionScheme.HSIMT,
+                        internal_pressure_method=pygetm.InternalPressure.SHCHEPETKIN_MCWILLIAMS,
                         airsea=airsea,
                         gotm=os.path.join(args.setup_dir, 'gotmturb.nml'),
 )
