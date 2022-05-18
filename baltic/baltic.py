@@ -32,7 +32,20 @@ if args.meteo_dir is None: args.no_meteo = True
 profile = 'baltic' if args.profile is not None else None
 
 # Setup domain and simulation
-domain = pygetm.legacy.domain_from_topo(os.path.join(args.setup_dir, 'topo.nc'), nlev=30, z0_const=0.001, tiling=args.tiling)
+domain = pygetm.legacy.domain_from_topo(
+           os.path.join(args.setup_dir, 'topo.nc'),
+           nlev=30,
+           z0_const=0.0005,
+           Dmin = 0.4,
+           Dcrit = 2.5,
+           vertical_coordinate_method = pygetm.domain.VerticalCoordinates.GVC,
+           ddu = 1.5,
+           ddl = 1.5,
+           Dgamma = 20.0,
+           #gamma_surf = True,
+           tiling=args.tiling
+)
+
 if args.boundaries:
     pygetm.legacy.load_bdyinfo(domain, os.path.join(args.setup_dir, 'bdyinfo.dat'))
 if args.rivers:
@@ -46,15 +59,11 @@ else:
 # Setup simulation
 sim = pygetm.Simulation(domain,
                         runtype=pygetm.BAROCLINIC,
-#                        runtype=pygetm.BAROTROPIC,
-                        advection_scheme=pygetm.AdvectionScheme.UPSTREAM,  # HSIMT
-#                        airsea=airsea,
-#                        airsea=pygetm.airsea.Fluxes(),
-                        airsea=pygetm.airsea.FluxesFromMeteo(humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE),
-#KB                        turbulence=pygetm.mixing.Turbulence(),
+                        advection_scheme=pygetm.AdvectionScheme.HSIMT,
+                        airsea=airsea,
                         gotm=os.path.join(args.setup_dir, 'gotmturb.nml'),
                         fabm=os.path.join(args.setup_dir, 'fabm.yaml'),
-                       )
+)
 
 #sim.input_manager.debug_nc_reads()
 
@@ -91,9 +100,6 @@ if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.temp[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.salt[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.density.convert_ts(sim.salt, sim.temp)
-else:
-    sim.temp.set(15.)
-    sim.salt.set(35.)
 
 if domain.rivers:
     for name, river in domain.rivers.items():
@@ -153,10 +159,11 @@ if args.output:
         output.request(('zt', 'uk', 'vk', 'ww', 'SS', 'num',))
         if args.debug_output:
             output.request(('fpk', 'fqk', 'advpk', 'advqk',))
+            output.request(('SxA', 'SyA', 'SxD', 'SyD', 'SxF', 'SyF', ))
     if sim.runtype == pygetm.BAROCLINIC:
         output.request(('temp', 'salt', 'rho', 'NN', 'rad', 'sst', 'hnt', 'nuh',))
         if args.debug_output:
-            output.request(('idpdx', 'idpdy',))
+            output.request(('idpdx', 'idpdy', 'SxB', 'SyB', ))
         if sim.fabm_model:
             output.request(('par', 'med_ergom_o2', 'med_ergom_OFL', 'med_ergom_dd'))
 
@@ -166,7 +173,11 @@ if args.save_restart:
 if args.load_restart:
     simstart = sim.load_restart(args.load_restart)
 
-sim.start(simstart, timestep=30., split_factor=20, report=120, profile=profile)
+sim.start(simstart, timestep=30., split_factor=20,
+          report=datetime.timedelta(hours=1),
+          report_totals=datetime.timedelta(days=1),
+          profile=profile
+)
 while sim.time < simstop:
     sim.advance()
 sim.finish()
