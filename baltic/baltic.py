@@ -128,16 +128,15 @@ if not args.no_meteo:
 if pygetm.BAROCLINIC:
     sim.radiation.set_jerlov_type(pygetm.radiation.JERLOV_II)
 
-if sim.fabm_model:
+if sim.fabm:
     sim.logger.info('Setting up FABM dependencies that GETM does not provide')
-    #sim.logger.info('Setting up FABM dependencies that GETM does not provide')
-    #sim.get_fabm_dependency('downwelling_photosynthetic_radiative_flux').set(0)
-    #sim.get_fabm_dependency('surface_downwelling_photosynthetic_radiative_flux').set(0)
-    #sim.get_fabm_dependency('bottom_stress').set(0)
-    #sim.get_fabm_dependency('bottom_stress').set(0)
+    #sim.fabm.get_dependency('downwelling_photosynthetic_radiative_flux').set(0)
+    #sim.fabm.get_dependency('surface_downwelling_photosynthetic_radiative_flux').set(0)
+    #sim.fabm.get_dependency('bottom_stress').set(0)
+    #sim.fabm.get_dependency('bottom_stress').set(0)
     #if sim.runtype == pygetm.BAROTROPIC_3D:
-        #sim.get_fabm_dependency('temperature').set(5.)
-        #sim.get_fabm_dependency('practical_salinity').set(35.)
+        #sim.fabm.get_dependency('temperature').set(5.)
+        #sim.fabm.get_dependency('practical_salinity').set(35.)
 
 if args.output:
     sim.logger.info('Setting up output')
@@ -165,7 +164,7 @@ if args.output:
         output.request(('temp', 'salt', 'rho', 'NN', 'rad', 'sst', 'hnt', 'nuh',))
         if args.debug_output:
             output.request(('idpdx', 'idpdy', 'SxB', 'SyB', ))
-        if sim.fabm_model:
+        if sim.fabm:
             output.request(('par', 'med_ergom_o2', 'med_ergom_OFL', 'med_ergom_dd'))
 
 if args.save_restart:
