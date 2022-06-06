@@ -32,7 +32,7 @@ if args.meteo_dir is None: args.no_meteo = True
 profile = 'swes' if args.profile is not None else None
 
 # Setup domain and simulation
-domain = pygetm.legacy.domain_from_topo(os.path.join(args.setup_dir, 'topo.nc'), nlev=30, z0_const=0.001, tiling=args.tiling)
+domain = pygetm.legacy.domain_from_topo(os.path.join(args.setup_dir, 'topo.nc'), nlev=45, z0_const=0.001, tiling=args.tiling)
 if args.boundaries:
     pygetm.legacy.load_bdyinfo(domain, os.path.join(args.setup_dir, 'bdyinfo.dat'))
 if args.rivers:
@@ -47,7 +47,7 @@ else:
 sim = pygetm.Simulation(domain,
                         runtype=pygetm.BAROCLINIC,
 #                        runtype=pygetm.BAROTROPIC,
-                        advection_scheme=pygetm.AdvectionScheme.UPSTREAM,  # HSIMT
+                        advection_scheme=pygetm.AdvectionScheme.HSIMT,
 #                        airsea=airsea,
 #                        airsea=pygetm.airsea.Fluxes(),
                         airsea=pygetm.airsea.FluxesFromMeteo(humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE),
@@ -61,22 +61,27 @@ sim = pygetm.Simulation(domain,
 if domain.open_boundaries:
     if args.tpxo9_dir is None:
         sim.logger.info('Reading 2D boundary data from file')
-#KB           domain.open_boundaries.z.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'elev'))
-#KB           domain.open_boundaries.u.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'Forcing/2D/bdy.2d.2006.nc'), 'u'))
-#KB           domain.open_boundaries.v.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'Forcing/2D/bdy.2d.2006.nc'), 'v'))
+        domain.open_boundaries.z.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'elev'))
+        domain.open_boundaries.u.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'u'))
+        domain.open_boundaries.v.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'v'))
     else:
-        sim.logger.info('Setting up TPXO tidal boundary forcing')
-        TPXO9_data_dirs = ( '/server/data', '../../../igotm/data', '/ACQUA/COMMONDATA' )
-        tpxo_dir = os.path.join(TPXO9_data_dir, 'TPXO9')
-        bdy_lon = domain.T.lon.all_values[domain.bdy_j, domain.bdy_i]
-        bdy_lat = domain.T.lat.all_values[domain.bdy_j, domain.bdy_i]
-        if domain.open_boundaries:
-            sim.zbdy.set(pygetm.input.tpxo.get(bdy_lon, bdy_lat, root=tpxo_dir), on_grid=True)
-            sim.bdyu.set(pygetm.input.tpxo.get(bdy_lon, bdy_lat, variable='u', root=tpxo_dir), on_grid=True)
-            sim.bdyv.set(pygetm.input.tpxo.get(bdy_lon, bdy_lat, variable='v', root=tpxo_dir), on_grid=True)
+       sim.logger.info('Setting up TPXO tidal boundary forcing')
+       if domain.open_boundaries:
+           domain.open_boundaries.z.set(pygetm.input.tpxo.get(domain.open_boundaries.lon, domain.open_boundaries.lat, root=args.tpxo9_dir), on_grid=True)
+           domain.open_boundaries.u.set(pygetm.input.tpxo.get(domain.open_boundaries.lon, domain.open_boundaries.lat, variable='u', root=args.tpxo9_dir), on_grid=True)
+           domain.open_boundaries.v.set(pygetm.input.tpxo.get(domain.open_boundaries.lon, domain.open_boundaries.lat, variable='v', root=args.tpxo9_dir), on_grid=True)
+#        sim.logger.info('Setting up TPXO tidal boundary forcing')
+#        TPXO9_data_dirs = ( '/server/data', '../../../igotm/data', '/ACQUA/COMMONDATA' )
+#        tpxo_dir = os.path.join(TPXO9_data_dir, 'TPXO9')
+#        bdy_lon = domain.T.lon.all_values[domain.bdy_j, domain.bdy_i]
+#        bdy_lat = domain.T.lat.all_values[domain.bdy_j, domain.bdy_i]
+#        if domain.open_boundaries:
+#            sim.zbdy.set(pygetm.input.tpxo.get(bdy_lon, bdy_lat, root=tpxo_dir), on_grid=True)
+#            sim.bdyu.set(pygetm.input.tpxo.get(bdy_lon, bdy_lat, variable='u', root=tpxo_dir), on_grid=True)
+#            sim.bdyv.set(pygetm.input.tpxo.get(bdy_lon, bdy_lat, variable='v', root=tpxo_dir), on_grid=True)
 
     # Need to either support old GETM full field bdy handling - or extract only those points needed
-    if False and sim.runtype == pygetm.BAROCLINIC:
+    if True and sim.runtype == pygetm.BAROCLINIC:
         sim.temp.open_boundaries.type = pygetm.SPONGE
         sim.temp.open_boundaries.values.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_3d.nc'), 'temp'), on_grid=True)
         sim.salt.open_boundaries.type = pygetm.SPONGE
@@ -85,13 +90,13 @@ if domain.open_boundaries:
 # Initial salinity and temperature
 if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.logger.info('Setting up initial salinity and temperature conditions')
-<<<<<<< HEAD
+#<<<<<<< HEAD
     sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.nc'), 'temp'), on_grid=True) #KB
     sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.nc'), 'salt'), on_grid=True) #KB
-=======
-    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.physics.deepinterp.nc'), 'temp'), on_grid=True)
-    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.physics.deepinterp.nc'), 'salt'), on_grid=True)
->>>>>>> a73573cb28e54a9189ff9edbfcf2a150129fcf38
+#=======
+#    sim.temp.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.physics.deepinterp.nc'), 'temp'), on_grid=True)
+#    sim.salt.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'initial.physics.deepinterp.nc'), 'salt'), on_grid=True)
+#>>>>>>> a73573cb28e54a9189ff9edbfcf2a150129fcf38
     sim.temp[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.salt[..., domain.T.mask==0] = pygetm.constants.FILL_VALUE
     sim.density.convert_ts(sim.salt, sim.temp)
@@ -152,7 +157,7 @@ if args.output:
         output.request(('Du', 'Dv', 'dpdx', 'dpdy', 'z0bu', 'z0bv', 'z0bt'))   #, 'u_taus'
         output.request(('ru', 'rru', 'rv', 'rrv', ))
     if sim.runtype > pygetm.BAROTROPIC_2D:
-        output = sim.output_manager.add_netcdf_file(os.path.join(args.output_dir, 'swes_3d.nc'), interval=datetime.timedelta(hours=6), sync_interval=None)
+        output = sim.output_manager.add_netcdf_file(os.path.join(args.output_dir, 'swes_3d.nc'), interval=datetime.timedelta(hours=24), sync_interval=True)
         output.request(('Ht', ), mask=True)
         output.request(('zt', 'uk', 'vk', 'ww', 'SS', 'num',))
         if args.debug_output:
