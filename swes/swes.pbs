@@ -5,9 +5,13 @@
 #PBS -l nodes=3:ppn=32
 #PBS -q medium
 
+# ###############alterado################
+
 eval "$(conda shell.bash hook)"
 conda activate pygetm
 cd $HOME/BLUE2/swes
 NPROCS=`wc -l < $PBS_NODEFILE`
-mpiexec -np $NPROCS --output-filename mpilog python -u $HOME/BLUE2/swes/swes.py '2005-01-01 00:00:00' '2005-01-03 00:00:00' '/ACQUA/COMMONDATA/GETM2/ERA5-europe/' --input_dir /ACQUA/COMMONDATA/GETM2/swes/Input --initial --tiling subdiv_96.pickle
+mpiexec -np $NPROCS --output-filename mpilog python -u $HOME/BLUE2/swes/swes.py '2005-01-01 00:00:00' '2005-12-31 00:00:00' '/ACQUA/COMMONDATA/BLUE2-data/ERA5-europe/' --input_dir /ACQUA/COMMONDATA/BLUE2-data/swes/Input --initial --tiling subdiv_96.pickle --output_dir /BGFS/ACQUA/ferrnun/BLUE2/swes_withBoundary_dailymean/ --debug_output # --tpxo9_dir /ACQUA/COMMONDATA/TPXO9/
+
+#mpiexec -np $NPROCS --output-filename mpilog python -u $HOME/BLUE2/swes/swes.py '2005-01-03 00:00:00' '2005-01-06 00:00:00' '/ACQUA/COMMONDATA/BLUE2-data/ERA5-europe/' --input_dir /ACQUA/COMMONDATA/BLUE2-data/swes/Input --initial --tiling subdiv_96.pickle --save_restart /BGFS/ACQUA/ferrnun/BLUE2/swes_test_restart/restart2.nc --output_dir /BGFS/ACQUA/ferrnun/BLUE2/swes_test_restart/ --load_restart /BGFS/ACQUA/ferrnun/BLUE2/swes_test_restart/restart.nc
 
