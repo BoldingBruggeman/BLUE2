@@ -2,12 +2,20 @@
 
 #PBS -o run_qsub_long.out
 #PBS -e run_qsub_long.err
-#PBS -l nodes=1:ppn=16
-#PBS -q test
+#PBS -l nodes=3:ppn=32
+#PBS -q medium
+
+# ###############alterado################
 
 eval "$(conda shell.bash hook)"
 conda activate pygetm
 cd $HOME/BLUE2/swes
 NPROCS=`wc -l < $PBS_NODEFILE`
-mpiexec -np $NPROCS python -u $HOME/BLUE2/swes/swes.py
+
+
+## running with GVC but starting without initial, works with split factor of 10 until 20 March 2005, then needs to lower it to 4 (eventualy somewhere inbetween is fine)
+
+mpiexec -np $NPROCS --output-filename mpilog python -u $HOME/BLUE2/swes/swes.py '2005-01-01 00:00:00' '2005-01-31 00:00:00' '/ACQUA/COMMONDATA/BLUE2-data/ERA5-europe/' --input_dir /ACQUA/COMMONDATA/BLUE2-data/swes/Input --tiling subdiv_96.pickle  --output_dir /BGFS/ACQUA/ferrnun/BLUE2/swes/ --debug_output --save_restart /BGFS/ACQUA/ferrnun/BLUE2/swes/restart.nc --initial
+
+
 

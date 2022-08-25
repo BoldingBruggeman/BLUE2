@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+# Added the option to output at constant depths.
+
+
+# was running with this:
+#mpiexec -np $NPROCS --output-filename mpilog python -u $HOME/BLUE2/swes/swes_2022_06_22.py '2005-01-01 00:00:00' '2005-08-31 00:00:00' '/ACQUA/COMMONDATA/BLUE2-data/ERA5-europe/' --input_dir /ACQUA/COMMONDATA/BLUE2-data/swes/Input --tiling subdiv_96.pickle  --output_dir /BGFS/ACQUA/ferrnun/BLUE2/swes_gvc_2022_06_22/ --debug_output --save_restart /BGFS/ACQUA/ferrnun/BLUE2/swes_gvc_2022_06_22/restart.nc --initial
+
+
+
 import argparse
 import sys
 import datetime
@@ -8,6 +16,7 @@ import os.path
 import pygetm
 import pygetm.legacy
 import pygetm.input.tpxo
+
 
 if os.path.isfile("../shared/blue2.py"):
     sys.path.insert(0, "../shared")
@@ -38,7 +47,8 @@ profile = "swes" if args.profile is not None else None
 # Setup domain and simulation
 domain = pygetm.legacy.domain_from_topo(
     os.path.join(args.setup_dir, "topo.nc"),
-    nlev=30,
+    nlev=45,
+    z0_const=0.005,
     z0=0.005,
     Dmin=0.7,
     Dcrit=2.1,
@@ -46,6 +56,7 @@ domain = pygetm.legacy.domain_from_topo(
     ddu=2.0,
     ddl=1.0,
     Dgamma=50.0,
+    Am=1.8e-06,
     # gamma_surf = True,
     tiling=args.tiling,
 )
@@ -56,39 +67,40 @@ if args.rivers:
     pygetm.legacy.load_riverinfo(domain, os.path.join(args.setup_dir, "riverinfo.dat"))
 
 if args.no_meteo:
-    airsea = airsea = pygetm.airsea.Fluxes()
+    airsea = pygetm.airsea.Fluxes()
 else:
-    airsea = pygetm.airsea.FluxesFromMeteo(
-        humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE
-    )
-
-if args.plot_domain:
-    domain.plot().savefig("domain_mesh.png")
+    airsea=pygetm.airsea.FluxesFromMeteo(humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE, calculate_evaporation=True, longwave_method=pygetm.airsea.LongwaveMethod.JOSEY2, albedo_method = pygetm.airsea.AlbedoMethod.PAYNE)
+    #airsea = (
+    #    pygetm.airsea.FluxesFromMeteo(
+    #        humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE
+    #    ),
+    #)
 
 # Setup simulation
 sim = pygetm.Simulation(
     domain,
     runtype=pygetm.BAROCLINIC,
-    advection_scheme=pygetm.AdvectionScheme.HSIMT,
+    advection_scheme=pygetm.AdvectionScheme.UPSTREAM, #HSIMT,
     internal_pressure_method=pygetm.InternalPressure.SHCHEPETKIN_MCWILLIAMS,
+#    internal_pressure_method=pygetm.InternalPressure.SHCHEPETKIN_MCWILLIAMS,
     airsea=airsea,
+    #airsea=pygetm.airsea.FluxesFromMeteo(humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE),
     gotm=os.path.join(args.setup_dir, "gotmturb.nml"),
 )
 
-if args.plot_domain:
-    domain.plot(show_mesh=False, show_mask=True).savefig("domain_mask.png")
+# sim.input_manager.debug_nc_reads()
 
 # Open boundary conditions
 if domain.open_boundaries:
     if args.tpxo9_dir is None:
         sim.logger.info("Reading 2D boundary data from file")
-    # KB           domain.open_boundaries.z.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'elev'))
-    # KB           domain.open_boundaries.u.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'Forcing/2D/bdy.2d.2006.nc'), 'u'))
-    # KB           domain.open_boundaries.v.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'Forcing/2D/bdy.2d.2006.nc'), 'v'))
+        domain.open_boundaries.z.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'elev'))
+        domain.open_boundaries.u.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'u'))
+        domain.open_boundaries.v.set(pygetm.input.from_nc(os.path.join(args.input_dir, 'bdy_2d.nc'), 'v'))
     else:
         sim.logger.info("Setting up TPXO tidal boundary forcing")
-        TPXO9_data_dirs = ("/server/data", "../../../igotm/data", "/ACQUA/COMMONDATA")
-        tpxo_dir = os.path.join(TPXO9_data_dir, "TPXO9")
+        TPXO9_data_dirs = ("/ACQUA/COMMONDATA")
+        tpxo_dir = os.path.join("/ACQUA/COMMONDATA", "TPXO9")
         bdy_lon = domain.T.lon.all_values[domain.bdy_j, domain.bdy_i]
         bdy_lat = domain.T.lat.all_values[domain.bdy_j, domain.bdy_i]
         if domain.open_boundaries:
@@ -105,7 +117,7 @@ if domain.open_boundaries:
             )
 
     # Need to either support old GETM full field bdy handling - or extract only those points needed
-    if False and sim.runtype == pygetm.BAROCLINIC:
+    if True and sim.runtype == pygetm.BAROCLINIC:
         sim.temp.open_boundaries.type = pygetm.SPONGE
         sim.temp.open_boundaries.values.set(
             pygetm.input.from_nc(os.path.join(args.input_dir, "bdy_3d.nc"), "temp"),
@@ -122,13 +134,13 @@ if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.logger.info("Setting up initial salinity and temperature conditions")
     sim.temp.set(
         pygetm.input.from_nc(
-            os.path.join(args.input_dir, "initial.physics.deepinterp.nc"), "temp"
+            os.path.join(args.input_dir, "initial.nc"), "temp"
         ),
         on_grid=True,
     )
     sim.salt.set(
         pygetm.input.from_nc(
-            os.path.join(args.input_dir, "initial.physics.deepinterp.nc"), "salt"
+            os.path.join(args.input_dir, "initial.nc"), "salt"
         ),
         on_grid=True,
     )
@@ -139,14 +151,31 @@ if args.initial and sim.runtype == pygetm.BAROCLINIC:
 if domain.rivers:
     for name, river in domain.rivers.items():
         river.flow.set(
-            pygetm.input.from_nc(os.path.join(args.input_dir, "mergerivers1.nc"), name)
+            pygetm.input.from_nc(os.path.join(args.input_dir, "mergerivers4.nc"), name)
         )
         if sim.runtype == pygetm.BAROCLINIC:
-            river["salt"].set(
-                pygetm.input.from_nc(
-                    os.path.join(args.input_dir, "mergerivers1.nc"), "%s_salt" % name
-                )
+#            river["salt"].set(0.01)
+            pygetm.input.from_nc(
+                os.path.join(args.input_dir, "mergerivers1.nc"), "%s_salt" % name
             )
+
+#    import netCDF4
+#    riverfile = os.path.join(args.input_dir, "mergerivers1.nc")
+#    nc = netCDF4.Dataset(riverfile)
+#
+#    for name, river in domain.rivers.items():
+#       #We can have several river-mouths x river:
+#       river.flow.set(pygetm.input.from_nc(riverfile, river.original_name) /
+#       river.split)
+#       river["salt"].follow_target_cell = "%s_salt" % river.original_name not in nc.variables
+#       if not river["salt"].follow_target_cell:
+#          river["salt"].set(pygetm.input.from_nc(riverfile, "%s_salt" % river.original_name,))
+#
+#       river["temp"].follow_target_cell = "%s_temp" % river.original_name not in nc.variables
+#       if not river["temp"].follow_target_cell:
+#          river["temp"].set(pygetm.input.from_nc(riverfile, "%s_temp" % river.original_name,))
+
+            
 
 # Meteorological forcing - select between ERA-interim or ERA5
 if not args.no_meteo:
@@ -164,6 +193,7 @@ if not args.no_meteo:
     sim.airsea.d2m.set(pygetm.input.from_nc(ERA_path, "d2m", **era_kwargs) - 273.15)
     sim.airsea.tcc.set(pygetm.input.from_nc(ERA_path, "tcc", **era_kwargs))
     sim.airsea.sp.set(pygetm.input.from_nc(ERA_path, "sp", **era_kwargs))
+    sim.airsea.tp.set(pygetm.input.from_nc(ERA_path, 'tp', **era_kwargs) / 3600) 
 
 if pygetm.BAROCLINIC:
     sim.radiation.set_jerlov_type(pygetm.radiation.JERLOV_II)
@@ -179,133 +209,79 @@ if sim.fabm:
     # sim.fabm.get_dependency('temperature').set(5.)
     # sim.fabm.get_dependency('practical_salinity').set(35.)
 
-if args.output and not args.dryrun:
+if args.output:
     sim.logger.info("Setting up output")
-    if not args.no_meteo:
-        output = sim.output_manager.add_netcdf_file(
-            os.path.join(args.output_dir, "meteo.nc"),
-            interval=datetime.timedelta(hours=1),
-            sync_interval=None,
-        )
-        output.request(("u10", "v10", "sp", "t2m", "d2m", "tcc"))
-        if args.debug_output:
-            output.request(
-                ("rhoa", "qa", "qs", "qe", "qh", "ql", "swr", "albedo", "zen")
-            )
-    output = sim.output_manager.add_netcdf_file(
-        os.path.join(args.output_dir, "swes_2d.nc"),
-        interval=datetime.timedelta(hours=1),
-        sync_interval=None,
-    )
-    output.request(("Ht",), mask=True)
-    output.request(
-        (
-            "zt",
-            "Dt",
-            "u1",
-            "v1",
-            "tausxu",
-            "tausyv",
-        )
-    )
-    if args.debug_output:
-        output.request(("U", "V"), mask=True)
-        output.request(
-            (
-                "maskt",
-                "masku",
-                "maskv",
-            )
-        )  # , 'u_taus'
-        output.request(
-            ("Du", "Dv", "dpdx", "dpdy", "z0bu", "z0bv", "z0bt")
-        )  # , 'u_taus'
-        output.request(
-            (
-                "ru",
-                "rru",
-                "rv",
-                "rrv",
-            )
-        )
+
+
     if sim.runtype > pygetm.BAROTROPIC_2D:
+        # -------------- File only averaging on MONTHS or YEARS
+        #output = sim.output_manager.add_netcdf_file(
+        #    os.path.join(args.output_dir, "medsea_monthly.nc"),
+        #    interval=1,
+        #    interval_units=pygetm.TimeUnit.MONTHS, #TimeUnit.YEARS
+        #    sync_interval=True,
+        #)
+        #output.request(('temp', 'salt',), mask=True, time_average=True)
+        #output.request(('uk', 'vk', 'ww',), grid=domain.T, z=pygetm.CENTERS, mask=True, time_average=True)
+        # File with only temperature and salinity - daily
+        # --------------- daily outputs
         output = sim.output_manager.add_netcdf_file(
-            os.path.join(args.output_dir, "swes_3d.nc"),
-            interval=datetime.timedelta(hours=6),
-            sync_interval=None,
+            os.path.join(args.output_dir, "swes_temp_salt.nc"),
+            interval=datetime.timedelta(hours=24),
+            sync_interval=True,
         )
         output.request(("Ht",), mask=True)
-        output.request(
-            (
-                "zt",
-                "uk",
-                "vk",
-                "ww",
-                "SS",
-                "num",
-            )
-        )
-        if args.debug_output:
-            output.request(
-                (
-                    "fpk",
-                    "fqk",
-                    "advpk",
-                    "advqk",
-                )
-            )
-            output.request(
-                (
-                    "SxA",
-                    "SyA",
-                    "SxD",
-                    "SyD",
-                    "SxF",
-                    "SyF",
-                )
-            )
     if sim.runtype == pygetm.BAROCLINIC:
         output.request(
             (
                 "temp",
                 "salt",
                 "rho",
-                "NN",
-                "rad",
                 "sst",
                 "hnt",
-                "nuh",
-            )
+                "qe",
+                "qh", 
+                "ql", 
+                "swr", 
+                "albedo", 
+                "zen"
+            ), 
+            mask=True, 
+            time_average=True
         )
-        if args.debug_output:
-            output.request(
-                (
-                    "idpdx",
-                    "idpdy",
-                    "SxB",
-                    "SyB",
-                )
-            )
-        if sim.fabm:
-            output.request(("par", "med_ergom_o2", "med_ergom_OFL", "med_ergom_dd"))
+        output.request(
+            (
+                "NN",
+                "nuh",
+                "SS",
+                "num",
+                "rad",
+            ),
+        )
+        output = sim.output_manager.add_netcdf_file(
+            os.path.join(args.output_dir, "swes_temp_salt_z.nc"),
+            interval=datetime.timedelta(hours=24),
+            sync_interval=True,
+        )
 
-if args.save_restart and not args.dryrun:
+        output.request("temp", "salt","uk","vk","ww", z=[-1000, -500, -100, -50, -3])
+        if sim.fabm:
+            output.request(("par", "med_ergom_o2", "med_ergom_OFL", "med_ergom_dd"),time_average=True)
+
+if args.save_restart:
     sim.output_manager.add_restart(args.save_restart)
 
-if args.load_restart and not args.dryrun:
+if args.load_restart:
     simstart = sim.load_restart(args.load_restart)
 
 sim.start(
     simstart,
-    timestep=15.0,
-    split_factor=40,
+    timestep=13.0,
+    split_factor=4,
     report=datetime.timedelta(hours=1),
     report_totals=datetime.timedelta(days=1),
     profile=profile,
 )
-if args.dryrun:
-    sim.logger.info("Making a dryrun - skipping sim.advance()")
-else:
-    while sim.time < simstop:
-        sim.advance()
+while sim.time < simstop:
+    sim.advance()
 sim.finish()
