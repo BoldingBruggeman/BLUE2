@@ -39,7 +39,7 @@ profile = "medsea" if args.profile is not None else None
 domain = pygetm.legacy.domain_from_topo(
     os.path.join(args.setup_dir, "topo.nc"),
     nlev=30,
-    z0_const=0.001,
+    z0=0.001,
     Dmin=0.2,
     Dcrit=0.5,
     vertical_coordinate_method=pygetm.domain.VerticalCoordinates.GVC,
@@ -58,11 +58,12 @@ if args.rivers:
 if args.no_meteo:
     airsea = airsea = pygetm.airsea.Fluxes()
 else:
-    airsea = (
-        pygetm.airsea.FluxesFromMeteo(
-            humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE
-        ),
+    airsea = pygetm.airsea.FluxesFromMeteo(
+        humidity_measure=pygetm.airsea.HumidityMeasure.DEW_POINT_TEMPERATURE
     )
+
+if args.plot_domain:
+    domain.plot().savefig("domain_mesh.png")
 
 # Setup simulation
 sim = pygetm.Simulation(
@@ -73,6 +74,9 @@ sim = pygetm.Simulation(
     airsea=airsea,
     gotm=os.path.join(args.setup_dir, "gotmturb.nml"),
 )
+
+if args.plot_domain:
+    domain.plot(show_mesh=False, show_mask=True).savefig("domain_mask.png")
 
 # sim.input_manager.debug_nc_reads()
 
@@ -177,7 +181,7 @@ if sim.fabm:
     # sim.fabm.get_dependency('temperature').set(5.)
     # sim.fabm.get_dependency('practical_salinity').set(35.)
 
-if args.output:
+if args.output and not args.dryrun:
     sim.logger.info("Setting up output")
     if not args.no_meteo:
         output = sim.output_manager.add_netcdf_file(
@@ -287,10 +291,10 @@ if args.output:
         if sim.fabm:
             output.request(("par", "med_ergom_o2", "med_ergom_OFL", "med_ergom_dd"))
 
-if args.save_restart:
+if args.save_restart and not args.dryrun:
     sim.output_manager.add_restart(args.save_restart)
 
-if args.load_restart:
+if args.load_restart and not args.dryrun:
     simstart = sim.load_restart(args.load_restart)
 
 sim.start(
@@ -301,6 +305,9 @@ sim.start(
     report_totals=datetime.timedelta(days=1),
     profile=profile,
 )
-while sim.time < simstop:
-    sim.advance()
+if args.dryrun:
+    sim.logger.info("Making a dryrun - skipping sim.advance()")
+else:
+    while sim.time < simstop:
+        sim.advance()
 sim.finish()
