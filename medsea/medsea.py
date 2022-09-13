@@ -130,22 +130,28 @@ if domain.open_boundaries:
             )
 
     if sim.runtype == pygetm.BAROCLINIC:
-        if sim.runtype == pygetm.BAROCLINIC:
-            sim.logger.info("Setting up temperature & salinity boundaries")
-            sim.temp.open_boundaries.type = pygetm.SPONGE  # CLAMPED
-            sim.temp.open_boundaries.values.set(
-                pygetm.input.from_nc(
-                    os.path.join(args.input_dir, "bdy_1d_phys.nc"), "temp"
-                ),
-                climatology=True,
-            )
-            sim.salt.open_boundaries.type = pygetm.SPONGE  # CLAMPED
-            sim.salt.open_boundaries.values.set(
-                pygetm.input.from_nc(
-                    os.path.join(args.input_dir, "bdy_1d_phys.nc"), "salt"
-                ),
-                climatology=True,
-            )
+        sim.logger.info("Setting up temperature & salinity boundaries")
+        sim.temp.open_boundaries.type = pygetm.SPONGE  # CLAMPED
+        sim.salt.open_boundaries.type = pygetm.SPONGE  # CLAMPED
+        salt_bdy, temp_bdy = sim.density.lazy_convert_ts(
+            pygetm.input.from_nc(
+                os.path.join(args.input_dir, "bdy_1d_phys.nc"), "salt"
+            ),
+            pygetm.input.from_nc(
+                os.path.join(args.input_dir, "bdy_1d_phys.nc"), "temp"
+            ),
+            lon=domain.open_boundaries.lon.allgather()[:, None],
+            lat=domain.open_boundaries.lat.allgather()[:, None],
+            in_situ=True,
+        )
+        sim.temp.open_boundaries.values.set(
+            temp_bdy,
+            climatology=True,
+        )
+        sim.salt.open_boundaries.values.set(
+            salt_bdy,
+            climatology=True,
+        )
 
 # Initial salinity and temperature
 if args.initial and sim.runtype == pygetm.BAROCLINIC:
@@ -153,16 +159,14 @@ if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.temp.set(
         pygetm.input.from_nc(
             os.path.join(args.input_dir, "medsea_phys_init.nc"),
-            "temp"
-            #            os.path.join(args.input_dir, "medsea_5x5-clim-dec.nc"), "temp"
+            "temp",
         ),
         on_grid=True,
     )
     sim.salt.set(
         pygetm.input.from_nc(
             os.path.join(args.input_dir, "medsea_phys_init.nc"),
-            "salt"
-            #            os.path.join(args.input_dir, "medsea_5x5-clim-dec.nc"), "salt"
+            "salt",
         ),
         on_grid=True,
     )
@@ -354,7 +358,7 @@ if args.output and not args.dryrun:
         output.request(("u10", "v10", "sp", "t2m", "d2m", "tcc", "tp"))
         if args.debug_output:
             output.request(
-                ("rhoa", "qa", "qs", "qe", "qh", "ql", "swr", "albedo", "zen", "pe")
+                "rhoa", "qa", "qs", "qe", "qh", "ql", "swr", "albedo", "zen", "pe"
             )
     output = sim.output_manager.add_netcdf_file(
         os.path.join(args.output_dir, "medsea_2d.nc"),
@@ -363,36 +367,14 @@ if args.output and not args.dryrun:
     )
     output.request(("Ht",), mask=True)
     #    output.request(("An",), mask=True)
-    output.request(
-        (
-            "zt",
-            "Dt",
-            "u1",
-            "v1",
-            "tausxu",
-            "tausyv",
-        )
-    )
+
+    output.request("zt", "Dt", "u1", "v1", "tausxu", "tausyv")
     if args.debug_output:
         output.request(("U", "V"), mask=True)
-        output.request(
-            (
-                "maskt",
-                "masku",
-                "maskv",
-            )
-        )  # , 'u_taus'
-        output.request(
-            ("Du", "Dv", "dpdx", "dpdy", "z0bu", "z0bv", "z0bt")
-        )  # , 'u_taus'
-        output.request(
-            (
-                "ru",
-                "rru",
-                "rv",
-                "rrv",
-            )
-        )
+        output.request("maskt", "masku", "maskv")
+        output.request("Du", "Dv", "dpdx", "dpdy", "z0bu", "z0bv", "z0bt")
+        output.request("ru", "rru", "rv", "rrv")
+
     if sim.runtype > pygetm.BAROTROPIC_2D:
         output = sim.output_manager.add_netcdf_file(
             os.path.join(args.output_dir, "medsea_3d.nc"),
@@ -400,59 +382,16 @@ if args.output and not args.dryrun:
             sync_interval=None,
         )
         output.request(("Ht",), mask=True)
-        output.request(
-            (
-                "zt",
-                "uk",
-                "vk",
-                "ww",
-                "SS",
-                "num",
-            )
-        )
+        output.request("zt", "uk", "vk", "ww", "SS", "num")
         if args.debug_output:
-            output.request(
-                (
-                    "fpk",
-                    "fqk",
-                    "advpk",
-                    "advqk",
-                )
-            )
-            output.request(
-                (
-                    "SxA",
-                    "SyA",
-                    "SxD",
-                    "SyD",
-                    "SxF",
-                    "SyF",
-                )
-            )
+            output.request("fpk", "fqk", "advpk", "advqk")
+            output.request("SxA", "SyA", "SxD", "SyD", "SxF", "SyF")
     if sim.runtype == pygetm.BAROCLINIC:
-        output.request(
-            (
-                "temp",
-                "salt",
-                "rho",
-                "NN",
-                "rad",
-                "sst",
-                "hnt",
-                "nuh",
-            )
-        )
+        output.request("temp", "salt", "rho", "NN", "rad", "sst", "hnt", "nuh")
         if args.debug_output:
-            output.request(
-                (
-                    "idpdx",
-                    "idpdy",
-                    "SxB",
-                    "SyB",
-                )
-            )
+            output.request("idpdx", "idpdy", "SxB", "SyB")
         if sim.fabm:
-            output.request(("par", "med_ergom_o2", "med_ergom_OFL", "med_ergom_dd"))
+            output.request("par", "med_ergom_o2", "med_ergom_OFL", "med_ergom_dd")
 
 if args.save_restart and not args.dryrun:
     sim.output_manager.add_restart(
