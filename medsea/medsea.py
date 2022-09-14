@@ -116,62 +116,39 @@ if domain.open_boundaries:
         tpxo_dir = os.path.join(TPXO9_data_dir, "TPXO9")
         bdy_lon = domain.T.lon.all_values[domain.bdy_j, domain.bdy_i]
         bdy_lat = domain.T.lat.all_values[domain.bdy_j, domain.bdy_i]
-        if domain.open_boundaries:
-            sim.zbdy.set(
-                pygetm.input.tpxo.get(bdy_lon, bdy_lat, root=tpxo_dir), on_grid=True
-            )
-            sim.bdyu.set(
-                pygetm.input.tpxo.get(bdy_lon, bdy_lat, variable="u", root=tpxo_dir),
-                on_grid=True,
-            )
-            sim.bdyv.set(
-                pygetm.input.tpxo.get(bdy_lon, bdy_lat, variable="v", root=tpxo_dir),
-                on_grid=True,
-            )
+        sim.zbdy.set(
+            pygetm.input.tpxo.get(bdy_lon, bdy_lat, root=tpxo_dir), on_grid=True
+        )
+        sim.bdyu.set(
+            pygetm.input.tpxo.get(bdy_lon, bdy_lat, variable="u", root=tpxo_dir),
+            on_grid=True,
+        )
+        sim.bdyv.set(
+            pygetm.input.tpxo.get(bdy_lon, bdy_lat, variable="v", root=tpxo_dir),
+            on_grid=True,
+        )
 
     if sim.runtype == pygetm.BAROCLINIC:
         sim.logger.info("Setting up temperature & salinity boundaries")
         sim.temp.open_boundaries.type = pygetm.SPONGE  # CLAMPED
         sim.salt.open_boundaries.type = pygetm.SPONGE  # CLAMPED
+        bdy_1d_phys_path = os.path.join(args.input_dir, "bdy_1d_phys.nc")
         salt_bdy, temp_bdy = sim.density.lazy_convert_ts(
-            pygetm.input.from_nc(
-                os.path.join(args.input_dir, "bdy_1d_phys.nc"), "salt"
-            ),
-            pygetm.input.from_nc(
-                os.path.join(args.input_dir, "bdy_1d_phys.nc"), "temp"
-            ),
+            pygetm.input.from_nc(bdy_1d_phys_path, "salt"),
+            pygetm.input.from_nc(bdy_1d_phys_path, "temp"),
             lon=domain.open_boundaries.lon.allgather()[:, None],
             lat=domain.open_boundaries.lat.allgather()[:, None],
             in_situ=True,
         )
-        sim.temp.open_boundaries.values.set(
-            temp_bdy,
-            climatology=True,
-        )
-        sim.salt.open_boundaries.values.set(
-            salt_bdy,
-            climatology=True,
-        )
+        sim.temp.open_boundaries.values.set(temp_bdy, climatology=True)
+        sim.salt.open_boundaries.values.set(salt_bdy, climatology=True)
 
 # Initial salinity and temperature
 if args.initial and sim.runtype == pygetm.BAROCLINIC:
     sim.logger.info("Setting up initial salinity and temperature conditions")
-    sim.temp.set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "medsea_phys_init.nc"),
-            "temp",
-        ),
-        on_grid=True,
-    )
-    sim.salt.set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "medsea_phys_init.nc"),
-            "salt",
-        ),
-        on_grid=True,
-    )
-    sim.temp[..., domain.T.mask == 0] = pygetm.constants.FILL_VALUE
-    sim.salt[..., domain.T.mask == 0] = pygetm.constants.FILL_VALUE
+    phys_init_path = os.path.join(args.input_dir, "medsea_phys_init.nc")
+    sim.temp.set(pygetm.input.from_nc(phys_init_path, "temp"), on_grid=True)
+    sim.salt.set(pygetm.input.from_nc(phys_init_path, "salt"), on_grid=True)
     sim.density.convert_ts(sim.salt, sim.temp, in_situ=True)
 
 # River handling:
@@ -192,10 +169,7 @@ if domain.rivers:
             )
             if not river["salt"].follow_target_cell:
                 river["salt"].set(
-                    pygetm.input.from_nc(
-                        riverfile,
-                        "%s_salt" % river.original_name,
-                    )
+                    pygetm.input.from_nc(riverfile, "%s_salt" % river.original_name,)
                 )
 
             river["temp"].follow_target_cell = (
@@ -203,10 +177,7 @@ if domain.rivers:
             )
             if not river["temp"].follow_target_cell:
                 river["temp"].set(
-                    pygetm.input.from_nc(
-                        riverfile,
-                        "%s_temp" % river.original_name,
-                    )
+                    pygetm.input.from_nc(riverfile, "%s_temp" % river.original_name,)
                 )
     else:
         for name, river in domain.rivers.items():
@@ -233,15 +204,15 @@ if domain.rivers:
                 )
             )
 
-            river["jrc_med_ergom_po"].follow_target_cell = (
-                "%s_jrc_medergom_po" % river.original_name not in nc.variables
-            )
-            if not river["jrc_med_ergom_po"].follow_target_cell:
-                river["jrc_med_ergom_po"].set(
-                    pygetm.input.from_nc(
-                        riverfile, "%s_jrc_medergom_po" % river.original_name
-                    )
+        river["jrc_med_ergom_po"].follow_target_cell = (
+            "%s_jrc_medergom_po" % river.original_name not in nc.variables
+        )
+        if not river["jrc_med_ergom_po"].follow_target_cell:
+            river["jrc_med_ergom_po"].set(
+                pygetm.input.from_nc(
+                    riverfile, "%s_jrc_medergom_po" % river.original_name
                 )
+            )
 
 
 # Meteorological forcing - select between ERA-interim or ERA5
@@ -269,79 +240,50 @@ if sim.fabm:
     sim.logger.info("Setting up initial FABM BIOGEOCHEM fields")
     #    sim["jrc_med_ergom_pp"].set(
     #        pygetm.input.from_nc(os.path.join(args.input_dir, "medsea_bio_init.nc"), "jrc_med_ergom_pp"), on_grid=True)
-
+    bio_init_path = os.path.join(args.input_dir, "medsea_bio_init.nc")
     sim["jrc_med_ergom_nn"].set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "medsea_bio_init.nc"), "jrc_med_ergom_nn"
-        ),
-        on_grid=True,
+        pygetm.input.from_nc(bio_init_path, "jrc_med_ergom_nn"), on_grid=True
     )
     sim["jrc_med_ergom_po"].set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "medsea_bio_init.nc"), "jrc_med_ergom_po"
-        ),
-        on_grid=True,
+        pygetm.input.from_nc(bio_init_path, "jrc_med_ergom_po"), on_grid=True
     )
     sim["jrc_med_ergom_o2"].set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "medsea_bio_init.nc"), "jrc_med_ergom_o2"
-        ),
-        on_grid=True,
+        pygetm.input.from_nc(bio_init_path, "jrc_med_ergom_o2"), on_grid=True
     )
     sim["jrc_med_ergom_aa"].set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "medsea_bio_init.nc"), "jrc_med_ergom_aa"
-        ),
-        on_grid=True,
+        pygetm.input.from_nc(bio_init_path, "jrc_med_ergom_aa"), on_grid=True
     )
     sim["jrc_med_ergom_dd"].set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "medsea_bio_init.nc"), "jrc_med_ergom_dd"
-        ),
-        on_grid=True,
+        pygetm.input.from_nc(bio_init_path, "jrc_med_ergom_dd"), on_grid=True
     )
 
     # SI que funciona!
     sim.logger.info(" ")
     sim.logger.info(" ==> Setting up boundary FABM BIOGEOCHEM fields")
+    bio_bdy_path = os.path.join(args.input_dir, "bdy_1d_bio.nc")
     sim["jrc_med_ergom_nn"].open_boundaries.type = pygetm.SPONGE
     sim["jrc_med_ergom_nn"].open_boundaries.values.set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "bdy_1d_bio.nc"), "jrc_med_ergom_nn"
-        ),
-        climatology=True,
+        pygetm.input.from_nc(bio_bdy_path, "jrc_med_ergom_nn"), climatology=True
     )
 
     sim["jrc_med_ergom_po"].open_boundaries.type = pygetm.SPONGE
     sim["jrc_med_ergom_po"].open_boundaries.values.set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "bdy_1d_bio.nc"), "jrc_med_ergom_po"
-        ),
-        climatology=True,
+        pygetm.input.from_nc(bio_bdy_path, "jrc_med_ergom_po"), climatology=True
     )
 
     sim["jrc_med_ergom_o2"].open_boundaries.type = pygetm.SPONGE
     sim["jrc_med_ergom_o2"].open_boundaries.values.set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "bdy_1d_bio.nc"), "jrc_med_ergom_o2"
-        ),
-        climatology=True,
+        pygetm.input.from_nc(bio_bdy_path, "jrc_med_ergom_o2"), climatology=True
     )
 
     sim["jrc_med_ergom_dd"].open_boundaries.type = pygetm.SPONGE
     sim["jrc_med_ergom_dd"].open_boundaries.values.set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "bdy_1d_bio.nc"), "jrc_med_ergom_dd"
-        ),
-        climatology=True,
+        pygetm.input.from_nc(bio_bdy_path, "jrc_med_ergom_dd"), climatology=True
     )
 
     sim["jrc_med_ergom_aa"].open_boundaries.type = pygetm.SPONGE
     sim["jrc_med_ergom_aa"].open_boundaries.values.set(
-        pygetm.input.from_nc(
-            os.path.join(args.input_dir, "bdy_1d_bio.nc"), "jrc_med_ergom_aa"
-        ),
-        climatology=True,
+        pygetm.input.from_nc(bio_bdy_path, "jrc_med_ergom_aa"), climatology=True
     )
     sim.logger.info(" ")
 
